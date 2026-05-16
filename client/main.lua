@@ -1,42 +1,62 @@
 local canSync = false
 
 function isNetVehicleCommanderAsync(vehNetId)
+    logger:trace("invoked | isNetVehicleCommanderAsync(" .. vehNetId .. ") invoked")
+
     local awaitable = promise.new()
 
-    TriggerServerCallback(
-        "DevJacob:FleetSync:Server:IsVehicleCommander",
-        vehNetId,
-        awaitable.resolve
-    )
+    rpc.invoke("DevJacob:FleetSync:Server:IsVehicleCommander", function(value)
+        logger:trace(
+            "resolved | isNetVehicleCommanderAsync(" .. vehNetId .. ") => %s",
+            tostring(value)
+        )
+        
+        awaitable:resolve(value)
+    end, vehNetId)
 
     return awaitable
 end
 
 
 function getCommanderForNetVehicleAsync(vehNetId)
+    logger:trace("invoked | getCommanderForNetVehicleAsync(" .. vehNetId .. ") invoked")
+
     local awaitable = promise.new()
 
-    TriggerServerCallback(
-        "DevJacob:FleetSync:Server:GetCommanderForVehicle",
-        vehNetId,
-        awaitable.resolve
-    )
+    rpc.invoke("DevJacob:FleetSync:Server:GetCommanderForVehicle", function(value)
+        logger:trace(
+            "resolved | getCommanderForNetVehicleAsync(" .. vehNetId .. ") => %s",
+            tostring(value)
+        )
+        
+        awaitable:resolve(value)
+    end, vehNetId)
 
     return awaitable
 end
 
 
 function markNetIdAsDead(vehNetId)
+    logger:trace("invoked | markNetIdAsDead(%s)", tostring(vehNetId))
+
     TriggerServerEvent("DevJacob:FleetSync:Server:DeadNetworkId", vehNetId)
 end
 
 
 function releaseNetVehicleAsCommander(vehNetId)
+    logger:trace("invoked | releaseNetVehicleAsCommander(%s)", tostring(vehNetId))
+
     TriggerServerEvent("DevJacob:FleetSync:Server:ReleaseVehicleAsCommander", vehNetId)
 end
 
 
 function syncNetVehicleToCommander(vehNetId, closestCommanderNetId)
+    logger:trace(
+        "invoked | syncNetVehicleToCommander(%s, %s)",
+        tostring(vehNetId),
+        tostring(closestCommanderNetId)
+    )
+
     TriggerServerEvent(
         "DevJacob:FleetSync:Server:SyncVehicleToCommander",
         vehNetId,
@@ -56,7 +76,7 @@ end
 
 
 RegisterNetEvent("DevJacob:FleetSync:Client:SyncVehicleNow", function(vehicleNetId, commanderNetId)
-    Logger.debug("Syncing to: " .. vehicleNetId)
+    logger:debug("attempting to sync to net ID " .. vehicleNetId)
     
     if
         not NetworkDoesEntityExistWithNetworkId(vehicleNetId)
@@ -74,14 +94,19 @@ RegisterNetEvent("DevJacob:FleetSync:Client:SyncVehicleNow", function(vehicleNet
         return
     end
 
+    logger:info("syncing to net ID " .. vehicleNetId)
 
     local commanderModel = GetEntityModel(commanderHandle)
-    local fleetName, fleetData = getFleetEntryFromModelHash(commanderModel)
-    local commanderExtraMap = getLightingExtrasForModelHash(commanderModel, fleetData)
-    local myExtraMap = getLightingExtrasForModelHash(GetEntityModel(vehicleHandle), fleetData)
+    local fleetEntry = getFleetEntryFromModelHash(commanderModel)
 
     -- If we mimic extras, do so now
-    if fleetData.copyExtras == true and fleetData.lightingExtras then
+    if fleetEntry.fleet.copyExtras == true and fleetEntry.fleet.lightingExtras then
+        local commanderExtraMap = getLightingExtrasForModelHash(commanderModel, fleetEntry.fleet)
+        local myExtraMap = getLightingExtrasForModelHash(
+            GetEntityModel(vehicleHandle),
+            fleetEntry.fleet
+        )
+
         for lightingName, commanderExtra in pairs(commanderExtraMap) do
             local myExtra = myExtraMap[lightingName]
 
@@ -140,13 +165,11 @@ Citizen.CreateThread(function()
         end
 
         -- Check if the vehicle is a fleet vehicle
-        local fleetName, fleetData = getFleetEntryFromModelHash(GetEntityModel(vehicle))
-        if fleetName == nil or fleetData == nil then 
+        local fleetEntry = getFleetEntryFromModelHash(GetEntityModel(vehicle))
+        if nil == fleetEntry then 
             canSync = false
             goto continue
         end
-        
-        Logger.debugIf(Config["DebugMode"], "FleetName = " .. fleetName)
 
         -- Check if the player has moved
         local currentPos = GetEntityCoords(vehicle)
@@ -163,9 +186,6 @@ Citizen.CreateThread(function()
         lastPos = currentPos
         lastSyncEntity = vehicle
         canSync = timeStill >= Config["IdleTimeRequired"]
-
-        Logger.debugIf(Config["DebugMode"], "timeStill = " .. timeStill)
-        Logger.debugIf(Config["DebugMode"], "canSync = " .. ternary(canSync, "true", "false"))
 
         ::continue::
     end
@@ -193,6 +213,7 @@ Citizen.CreateThread(function()
             local isCommander = Citizen.Await(isNetVehicleCommanderAsync(vehicleNetId))
 
             if isCommander == true then
+                logger:info("vehicle net ID %s releasing commander", tostring(vehicleNetId))
                 releaseNetVehicleAsCommander(vehicleNetId)
             else 
                 unsyncNetVehicleFromCommander(vehicleNetId)
@@ -208,31 +229,22 @@ Citizen.CreateThread(function()
         end
 
         -- Check if the vehicle is a fleet vehicle
-        local fleetName, fleetData = getFleetEntryFromModelHash(GetEntityModel(vehicle))
-        if fleetName == nil or fleetData == nil then 
+        local fleetEntry = getFleetEntryFromModelHash(GetEntityModel(vehicle))
+        if nil == fleetEntry then 
             goto continue
         end
-        
-        Logger.debugIf(Config["DebugMode"], "FleetName = " .. fleetName)
-
 
         -- Check if player's vehicle is a commander
         local vehicleNetId = VehToNet(vehicle)
-        local isCommander = Citizen.Await(isNetVehicleCommanderAsync(vehicleNetId))
-
-        Logger.debugIf(
-            Config["DebugMode"],
-            "isPlayerVehCommander = " .. ternary(isPlayerVehCommander, "true", "false")
-        )
+        local isPlayerVehCommander = Citizen.Await(isNetVehicleCommanderAsync(vehicleNetId))
 
 
         -- Check if we have another fleet vehicle nearby
-        local nearbyFleetVehs = GetFleetVehiclesInRange(fleetData, { vehicle })
-        
-        Logger.debugIf(Config["DebugMode"], "NearbyFleetVehs = " .. #nearbyFleetVehs)
+        local nearbyFleetVehs = findFleetVehiclesInRange(fleetEntry.fleet, { vehicle })
         
         if nearbyFleetVehs == nil or #nearbyFleetVehs == 0 then
             if isPlayerVehCommander == false then
+                logger:info("registering vehicle net ID %s as commander", tostring(vehicleNetId))
                 registerNetVehicleAsCommander(vehicleNetId)
             end
 
@@ -254,6 +266,7 @@ Citizen.CreateThread(function()
             local myCommanderPos = GetEntityCoords(myCommanderHandle)
 
             if isSynced and #(myCommanderPos - myPos) > Config["CommanderRadius"] then
+                logger:info("unsyncing from commander net ID %s", tostring(vehicleNetId))
                 unsyncNetVehicleFromCommander(vehicleNetId)
                 
                 goto continue
@@ -268,12 +281,6 @@ Citizen.CreateThread(function()
 
                 local targetIsCommander = Citizen.Await(isNetVehicleCommanderAsync(targetVehNetId))
 
-                Logger.debugIf(
-                    Config["DebugMode"],
-                    "veh " .. targetVehNetId ..  " commander = "
-                        .. ternary(targetIsCommander, "true", "false")
-                )
-
                 if targetIsCommander then
                     local targetPos = GetEntityCoords(targetVeh)
                     local dist = #(targetPos - myPos)
@@ -287,6 +294,7 @@ Citizen.CreateThread(function()
             
             -- If none in the radius is a commander, become one
             if closestCommanderNetId == nil then
+                logger:info("registering vehicle net ID %s as commander", tostring(vehicleNetId))
                 registerNetVehicleAsCommander(vehicleNetId)
 
                 goto continue
@@ -294,6 +302,11 @@ Citizen.CreateThread(function()
 
             -- If we have a commander in range, sync to them
             if closestCommanderNetId ~= nil and closestCommanderNetId ~= syncedCommanderNetId then
+                logger:info(
+                    "syncing vehicle net ID %s to commander net ID %s",
+                    tostring(vehicleNetId),
+                    tostring(closestCommanderNetId)
+                )
                 syncNetVehicleToCommander(vehicleNetId, closestCommanderNetId)
 
                 goto continue

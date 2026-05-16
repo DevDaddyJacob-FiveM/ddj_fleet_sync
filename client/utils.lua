@@ -92,8 +92,8 @@ function findFleetVehiclesInRange(fleet, excludedVehicleHandles)
     local vehicles = {}
 
     local fleetModelHashes = {}
-    for i = 1, #fleetData.vehicles do
-        table.insert(fleetModelHashes, getHash(fleetData.vehicles[i]))
+    for i = 1, #fleet.vehicles do
+        table.insert(fleetModelHashes, getHash(fleet.vehicles[i]))
     end
     
     local playerPed = PlayerPedId()

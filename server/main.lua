@@ -4,7 +4,7 @@ local syncs = {}
 
 RegisterNetEvent("DevJacob:FleetSync:Server:RegisterVehicleAsCommander", function(vehNetId)
     commanders[vehNetId] = true
-    Logger.debugIf(Config["DebugMode"], vehNetId .. " registered themselves as a commander")
+    logger:info(vehNetId .. " registered themselves as a commander")
 end)
 
 
@@ -16,7 +16,7 @@ RegisterNetEvent("DevJacob:FleetSync:Server:ReleaseVehicleAsCommander", function
         end
     end
 
-    Logger.debugIf(Config["DebugMode"], vehNetId .. " released themselves as a commander")
+    logger:info(vehNetId .. " released themselves as a commander")
 end)
 
 
@@ -59,13 +59,13 @@ RegisterNetEvent("DevJacob:FleetSync:Server:SyncVehicleToCommander", function(ve
     
     targets = nil
 
-    Logger.debugIf(Config["DebugMode"], vehNetId .. " synced to commander id " .. commanderNetId)
+    logger:debug(vehNetId .. " synced to commander id " .. commanderNetId)
 end)
 
 
 RegisterNetEvent("DevJacob:FleetSync:Server:UnsyncVehicleFromCommander", function(vehNetId)
     if syncs[vehicelNetId] ~= nil then
-        Logger.debugIf(Config["DebugMode"], vehNetId .. " unsynced from commander id " .. commander)
+        logger:debug(vehNetId .. " unsynced from commander id " .. commander)
     end
 
     syncs[vehNetId] = nil
@@ -83,11 +83,11 @@ RegisterNetEvent("DevJacob:FleetSync:Server:DeadNetworkId", function(netId)
 end)
 
 
-RegisterNetEvent("DevJacob:FleetSync:Server:IsVehicleCommander", function(vehNetId, cb)
+rpc.register("DevJacob:FleetSync:Server:IsVehicleCommander", function(source, cb, vehNetId)
     cb(commanders[vehNetId] == true)
 end)
 
 
-RegisterNetEvent("DevJacob:FleetSync:Server:GetCommanderForVehicle", function(vehNetId, cb)
+rpc.register("DevJacob:FleetSync:Server:GetCommanderForVehicle", function(source, cb, vehNetId)
     cb(syncs[vehNetId])
 end)

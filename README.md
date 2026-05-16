@@ -7,11 +7,10 @@ A simple and lightweight FiveM script which provides syncing of light paterns fo
 - [Dev Demo #3](https://youtu.be/4A8z0bZboH4)
 
 ### Dependencies
-- [DevJacob_CommonLib](https://github.com/DevJacob-Studios/DevJacob_CommonLib)
-- [DevJacob_CallbackManager](https://github.com/DevJacob-Studios/DevJacob_CallbackManager)
+- [ddj_lib](https://github.com/DevDaddyJacob-FiveM/ddj_lib)
 
 ### Installation
-Installing the resource is simple, just download the latest version from the [releases](https://github.com/DevJacob-Studios/DevJacob_FleetSync/releases/latest) tab, place the folder into your FiveM resources folder and then add `ensure DevJacob_FleetSync` to your server.cfg file.
+Installing the resource is simple, just download the latest version from the [releases](https://github.com/DevDaddyJacob-FiveM/ddj_fleet_sync/releases/latest) tab, place the folder into your FiveM resources folder and then add `ensure ddj_fleet_sync` to your server.cfg file.
 Remember to also download and install all of the dependencies!
 
 ### Configuration

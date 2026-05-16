@@ -1,3 +1,5 @@
+logger = Logger.new("ddj-fleet-sync")
+
 Config = {
     --[[
         Enabled and disabled extra logging to the console
