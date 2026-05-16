@@ -12,7 +12,7 @@ dependencies {
 }
 
 shared_scripts {
-	"@ddj_lib/imports/logging.lua",
+	"@ddj_lib/shared/logging.lua",
 	"@ddj_lib/imports/rpc.lua",
 	"config.lua",
 	"shared/utils.lua",
