@@ -1,11 +1,6 @@
-logger = Logger.new("ddj-fleet-sync")
+logger = Logger.new("Fleet-Sync")
 
 Config = {
-    --[[
-        Enabled and disabled extra logging to the console
-    ]]
-    DebugMode = true,
-
     --[[
         The amount of time in ms that a car must be still for
         before it tries to sync or register as a commander
