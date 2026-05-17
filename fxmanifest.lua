@@ -8,7 +8,7 @@ description "A FiveM script to sync lights on emergency fleets"
 version "1.0.0"
 
 dependencies {
-	"ddj_lib"
+	"ddj_lib", -- version >= 1.0.0
 }
 
 shared_scripts {
