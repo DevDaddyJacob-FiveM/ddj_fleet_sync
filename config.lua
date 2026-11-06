@@ -1,4 +1,4 @@
-logger = Logger.new("Fleet-Sync")
+logger = Logger.new("fleet-sync")
 
 Config = {
     --[[
